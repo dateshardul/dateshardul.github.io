@@ -55,12 +55,16 @@ const Performance = () => {
     if (filteredPerformance.length === 0) return [];
     
     const metricKeys = Object.keys(filteredPerformance[0].metrics).filter(
-      key => filteredPerformance[0].metrics[key as keyof typeof filteredPerformance[0].metrics] !== undefined
+      key => {
+        const typedKey = key as keyof typeof filteredPerformance[0]["metrics"];
+        return filteredPerformance[0].metrics[typedKey] !== undefined;
+      }
     );
     
     return metricKeys.map(key => {
       const sum = filteredPerformance.reduce((total, perf) => {
-        const value = perf.metrics[key as keyof typeof perf.metrics];
+        const typedKey = key as keyof typeof perf["metrics"];
+        const value = perf.metrics[typedKey];
         return total + (value || 0);
       }, 0);
       
@@ -190,8 +194,11 @@ const Performance = () => {
           </CardHeader>
           <CardContent className="max-h-80 overflow-y-auto">
             <div className="space-y-4">
-              {Object.keys(filteredPerformance[0]?.metrics || {})
-                .filter(key => filteredPerformance[0]?.metrics[key as keyof typeof filteredPerformance[0].metrics] !== undefined)
+              {filteredPerformance.length > 0 && Object.keys(filteredPerformance[0]?.metrics || {})
+                .filter(key => {
+                  const typedKey = key as keyof typeof filteredPerformance[0]["metrics"];
+                  return filteredPerformance[0]?.metrics[typedKey] !== undefined;
+                })
                 .map(metricKey => (
                   <div key={metricKey} className="pb-2 border-b border-gray-100 last:border-0">
                     <h4 className="font-medium text-pms-blue">
@@ -222,7 +229,10 @@ const Performance = () => {
                   <TableHead className="w-[200px]">Name</TableHead>
                   <TableHead className="text-right">Rating</TableHead>
                   {filteredPerformance.length > 0 && Object.keys(filteredPerformance[0].metrics)
-                    .filter(key => filteredPerformance[0].metrics[key as keyof typeof filteredPerformance[0].metrics] !== undefined)
+                    .filter(key => {
+                      const typedKey = key as keyof typeof filteredPerformance[0]["metrics"];
+                      return filteredPerformance[0].metrics[typedKey] !== undefined;
+                    })
                     .map(key => (
                       <TableHead key={key} className="text-right">
                         {formatMetricName(key)}
