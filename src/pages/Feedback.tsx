@@ -1,331 +1,225 @@
 
 import { useState } from "react";
 import { useData } from "../contexts/DataContext";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/hooks/use-toast";
-import { MessageSquare, User, Users, Robot } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format } from "date-fns";
+import { Bot, User as UserIcon, Users, UserCheck } from "lucide-react";
 
 const Feedback = () => {
-  const { employees, performanceData } = useData();
-  const [selectedEmployee, setSelectedEmployee] = useState("");
-  const [feedbackText, setFeedbackText] = useState("");
-  const [feedbackCategory, setFeedbackCategory] = useState("peer");
-  
+  const { employees, performanceData, currentUser } = useData();
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [newFeedback, setNewFeedback] = useState("");
+
+  const filteredEmployees = employees.filter(
+    (employee) =>
+      employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      employee.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      employee.department.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const selectedEmployee = employees.find((emp) => emp.id === selectedEmployeeId);
+
+  const feedbackItems = selectedEmployee
+    ? performanceData
+        .filter((perf) => perf.employeeId === selectedEmployee.id)
+        .flatMap((perf) => perf.feedback)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    : [];
+
   const handleSubmitFeedback = () => {
-    if (!selectedEmployee) {
-      toast({
-        title: "No employee selected",
-        description: "Please select an employee to submit feedback for.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!feedbackText.trim()) {
-      toast({
-        title: "Empty feedback",
-        description: "Please provide feedback text.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // In a real app, this would save to the backend
-    toast({
-      title: "Feedback submitted",
-      description: "Your feedback has been recorded successfully.",
-    });
-    
-    // Reset form
-    setFeedbackText("");
+    alert("Feedback submitted!");
+    setNewFeedback("");
   };
-  
-  // Get all feedback from the latest month
-  const latestMonth = [...new Set(performanceData.map(data => data.month))]
-    .sort((a, b) => b.localeCompare(a))[0];
-  
-  const allFeedback = performanceData
-    .filter(data => data.month === latestMonth)
-    .flatMap(data => data.feedback.map(fb => ({
-      ...fb,
-      employeeId: data.employeeId,
-    })));
-  
-  // Group feedback by category
-  const peerFeedback = allFeedback.filter(fb => fb.category === "peer");
-  const managerFeedback = allFeedback.filter(fb => fb.category === "manager");
-  const selfFeedback = allFeedback.filter(fb => fb.category === "self");
-  const systemFeedback = allFeedback.filter(fb => fb.category === "system");
-  
-  // Get employee name by ID
-  const getEmployeeName = (employeeId: string) => {
-    const employee = employees.find(emp => emp.id === employeeId);
-    return employee?.name || "Unknown Employee";
-  };
-  
-  // Get feedback icon
+
   const getFeedbackIcon = (category: string) => {
     switch (category) {
       case "peer":
-        return <Users className="h-5 w-5 text-pms-blue" />;
+        return <Users className="h-4 w-4" />;
       case "manager":
-        return <User className="h-5 w-5 text-pms-teal" />;
+        return <UserCheck className="h-4 w-4" />;
       case "self":
-        return <User className="h-5 w-5 text-pms-orange" />;
+        return <UserIcon className="h-4 w-4" />;
       case "system":
-        return <Robot className="h-5 w-5 text-pms-purple" />;
+        return <Bot className="h-4 w-4" />;
       default:
-        return <MessageSquare className="h-5 w-5 text-gray-500" />;
+        return <UserIcon className="h-4 w-4" />;
     }
   };
-  
-  // Get badge style based on sentiment
-  const getSentimentBadge = (sentiment: string) => {
+
+  const getSentimentColor = (sentiment: string) => {
     switch (sentiment) {
       case "positive":
-        return <Badge className="bg-green-100 text-green-800">Positive</Badge>;
+        return "bg-green-500";
       case "negative":
-        return <Badge className="bg-red-100 text-red-800">Negative</Badge>;
-      case "neutral":
-        return <Badge className="bg-blue-100 text-blue-800">Neutral</Badge>;
+        return "bg-red-500";
       default:
-        return null;
+        return "bg-gray-500";
     }
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Feedback Collection</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Feedback</h2>
         <p className="text-muted-foreground">
-          Review and provide feedback for team members
+          View and provide feedback for team members
         </p>
       </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-1">
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="md:col-span-1">
           <CardHeader>
-            <CardTitle>Provide Feedback</CardTitle>
+            <CardTitle>Employees</CardTitle>
             <CardDescription>
-              Submit feedback for a team member
+              Select an employee to view or provide feedback
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Select Employee</label>
-                <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an employee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Employees</SelectLabel>
-                      {employees.map(employee => (
-                        <SelectItem key={employee.id} value={employee.id}>
-                          {employee.name} - {employee.role}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+              <Input
+                placeholder="Search employees..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                {filteredEmployees.map((employee) => (
+                  <div
+                    key={employee.id}
+                    className={`flex items-center p-2 rounded cursor-pointer hover:bg-slate-100 ${
+                      selectedEmployeeId === employee.id ? "bg-slate-100" : ""
+                    }`}
+                    onClick={() => setSelectedEmployeeId(employee.id)}
+                  >
+                    <Avatar className="h-10 w-10 mr-3">
+                      <AvatarImage src={employee.avatar} alt={employee.name} />
+                      <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{employee.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {employee.role}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Feedback Type</label>
-                <Select value={feedbackCategory} onValueChange={setFeedbackCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select feedback type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="peer">Peer Feedback</SelectItem>
-                    <SelectItem value="manager">Manager Feedback</SelectItem>
-                    <SelectItem value="self">Self-Assessment</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Feedback</label>
-                <Textarea 
-                  placeholder="Provide your feedback here..." 
-                  value={feedbackText}
-                  onChange={(e) => setFeedbackText(e.target.value)}
-                  rows={6}
-                />
-              </div>
-              
-              <Button 
-                className="w-full bg-pms-teal hover:bg-pms-teal/90"
-                onClick={handleSubmitFeedback}
-              >
-                Submit Feedback
-              </Button>
             </div>
           </CardContent>
         </Card>
-        
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Recent Feedback</CardTitle>
-            <CardDescription>
-              Feedback collected for the current period
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="peer">
-              <TabsList className="mb-4 w-full">
-                <TabsTrigger value="peer" className="flex-1">Peer ({peerFeedback.length})</TabsTrigger>
-                <TabsTrigger value="manager" className="flex-1">Manager ({managerFeedback.length})</TabsTrigger>
-                <TabsTrigger value="self" className="flex-1">Self ({selfFeedback.length})</TabsTrigger>
-                <TabsTrigger value="system" className="flex-1">System ({systemFeedback.length})</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="peer" className="space-y-4 mt-0">
-                <div className="flex mb-4">
-                  <Input className="max-w-sm" placeholder="Search peer feedback..." />
+
+        {selectedEmployee ? (
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>{selectedEmployee.name}</CardTitle>
+                  <CardDescription>
+                    {selectedEmployee.role} · {selectedEmployee.department}
+                  </CardDescription>
                 </div>
-                {peerFeedback.slice(0, 5).map(feedback => (
-                  <div
-                    key={feedback.id}
-                    className="p-3 rounded-md border border-gray-100 hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5">
-                        {getFeedbackIcon("peer")}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex flex-wrap gap-2 items-center mb-1">
-                          <div className="font-medium text-sm">
-                            For: {getEmployeeName(feedback.employeeId)}
+                <Avatar className="h-12 w-12">
+                  <AvatarImage
+                    src={selectedEmployee.avatar}
+                    alt={selectedEmployee.name}
+                  />
+                  <AvatarFallback>{selectedEmployee.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="view">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="view">View Feedback</TabsTrigger>
+                  <TabsTrigger value="provide">Provide Feedback</TabsTrigger>
+                </TabsList>
+                <TabsContent value="view">
+                  <div className="space-y-6">
+                    {feedbackItems.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">
+                        No feedback available for this employee.
+                      </p>
+                    ) : (
+                      feedbackItems.map((feedback) => (
+                        <div
+                          key={feedback.id}
+                          className="border rounded-lg p-4 space-y-3"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center">
+                              <div
+                                className={`w-2 h-2 rounded-full mr-2 ${getSentimentColor(
+                                  feedback.sentiment
+                                )}`}
+                              ></div>
+                              <Badge variant="outline" className="mr-2">
+                                <span className="flex items-center gap-1">
+                                  {getFeedbackIcon(feedback.category)}
+                                  {feedback.category.charAt(0).toUpperCase() +
+                                    feedback.category.slice(1)}
+                                </span>
+                              </Badge>
+                              <span className="text-sm text-muted-foreground">
+                                From: {feedback.from}
+                              </span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(feedback.date), "MMM d, yyyy")}
+                            </span>
                           </div>
-                          {getSentimentBadge(feedback.sentiment)}
+                          <p>{feedback.text}</p>
+                          {feedback.topics && (
+                            <div className="flex gap-2 flex-wrap">
+                              {feedback.topics.map((topic, index) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
+                                  {topic}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <p className="text-sm text-gray-600">
-                          "{feedback.text}"
-                        </p>
-                        <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
-                          <span>From: {feedback.from}</span>
-                          <span>{new Date(feedback.date).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    </div>
+                      ))
+                    )}
                   </div>
-                ))}
-              </TabsContent>
-              
-              <TabsContent value="manager" className="space-y-4 mt-0">
-                {managerFeedback.slice(0, 5).map(feedback => (
-                  <div
-                    key={feedback.id}
-                    className="p-3 rounded-md border border-gray-100 hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5">
-                        {getFeedbackIcon("manager")}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex flex-wrap gap-2 items-center mb-1">
-                          <div className="font-medium text-sm">
-                            For: {getEmployeeName(feedback.employeeId)}
-                          </div>
-                          {getSentimentBadge(feedback.sentiment)}
-                        </div>
-                        <p className="text-sm text-gray-600">
-                          "{feedback.text}"
-                        </p>
-                        <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
-                          <span>From: {feedback.from} (Manager)</span>
-                          <span>{new Date(feedback.date).toLocaleDateString()}</span>
-                        </div>
-                      </div>
+                </TabsContent>
+                <TabsContent value="provide">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Your Feedback
+                      </label>
+                      <Textarea
+                        placeholder="Provide specific, constructive feedback about this employee's performance..."
+                        className="min-h-[150px]"
+                        value={newFeedback}
+                        onChange={(e) => setNewFeedback(e.target.value)}
+                      />
                     </div>
+                    <Button onClick={handleSubmitFeedback} disabled={!newFeedback.trim()}>
+                      Submit Feedback
+                    </Button>
                   </div>
-                ))}
-              </TabsContent>
-              
-              <TabsContent value="self" className="space-y-4 mt-0">
-                {selfFeedback.slice(0, 5).map(feedback => (
-                  <div
-                    key={feedback.id}
-                    className="p-3 rounded-md border border-gray-100 hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5">
-                        {getFeedbackIcon("self")}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex flex-wrap gap-2 items-center mb-1">
-                          <div className="font-medium text-sm">
-                            For: {getEmployeeName(feedback.employeeId)}
-                          </div>
-                          {getSentimentBadge(feedback.sentiment)}
-                        </div>
-                        <p className="text-sm text-gray-600">
-                          "{feedback.text}"
-                        </p>
-                        <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
-                          <span>Self-assessment</span>
-                          <span>{new Date(feedback.date).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </TabsContent>
-              
-              <TabsContent value="system" className="space-y-4 mt-0">
-                {systemFeedback.slice(0, 5).map(feedback => (
-                  <div
-                    key={feedback.id}
-                    className="p-3 rounded-md border border-gray-100 hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5">
-                        {getFeedbackIcon("system")}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex flex-wrap gap-2 items-center mb-1">
-                          <div className="font-medium text-sm">
-                            For: {getEmployeeName(feedback.employeeId)}
-                          </div>
-                          {getSentimentBadge(feedback.sentiment)}
-                        </div>
-                        <p className="text-sm text-gray-600">
-                          "{feedback.text}"
-                        </p>
-                        <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
-                          <span>AI-Generated</span>
-                          <span>{new Date(feedback.date).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="md:col-span-2">
+            <CardContent className="flex items-center justify-center min-h-[400px]">
+              <div className="text-center">
+                <p className="text-muted-foreground">
+                  Select an employee to view or provide feedback
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

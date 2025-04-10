@@ -12,6 +12,10 @@ export interface Employee {
   department: string;
   manager: string;
   joinDate: string;
+  experienceYears: number;
+  skills: string[];
+  previousCompany?: string;
+  education?: string;
 }
 
 export interface PerformanceData {
@@ -24,23 +28,33 @@ export interface PerformanceData {
 }
 
 export interface RoleMetrics {
-  codeQuality?: number; // 1-100 - SDE
-  velocity?: number; // Story points - SDE
-  commitFrequency?: number; // Commits per week - SDE
-  pullRequestsReviewed?: number; // PRs reviewed - SDE
-  bugsIntroduced?: number; // Number of bugs - SDE
-  onTimeDelivery?: number; // Percentage - SDE, PM
+  // SDE Metrics
+  codeQuality?: number; // 1-100
+  velocity?: number; // Story points
+  commitFrequency?: number; // Commits per week
+  pullRequestsReviewed?: number; // PRs reviewed
+  bugsIntroduced?: number; // Number of bugs
+  onTimeDelivery?: number; // Percentage
+  complexityScore?: number; // 1-100
+  testCoverage?: number; // Percentage
   
-  productImpact?: number; // 1-100 - PM
-  stakeholderSatisfaction?: number; // 1-100 - PM
-  requirementQuality?: number; // 1-100 - PM
-  decisionsTimeliness?: number; // 1-100 - PM
+  // PM Metrics
+  productImpact?: number; // 1-100
+  stakeholderSatisfaction?: number; // 1-100
+  requirementQuality?: number; // 1-100
+  decisionsTimeliness?: number; // 1-100
+  featureDeliveryRate?: number; // Percentage
+  roadmapAdherence?: number; // Percentage
+  marketAnalysisScore?: number; // 1-100
   
-  modelAccuracy?: number; // Percentage - ML
-  experimentVelocity?: number; // Number of experiments - ML
-  paperContributions?: number; // Number of papers - ML
-  dataQuality?: number; // 1-100 - ML
-  modelDeployments?: number; // Number of deployments - ML
+  // ML Engineer Metrics
+  modelAccuracy?: number; // Percentage
+  experimentVelocity?: number; // Number of experiments
+  paperContributions?: number; // Number of papers
+  dataQuality?: number; // 1-100
+  modelDeployments?: number; // Number of deployments
+  pipelineUptime?: number; // Percentage
+  algorithmComplexity?: number; // 1-100
 }
 
 export interface Feedback {
@@ -50,6 +64,7 @@ export interface Feedback {
   text: string;
   category: "peer" | "manager" | "self" | "system";
   sentiment: "positive" | "negative" | "neutral";
+  topics?: string[]; // New: topics identified in the feedback
 }
 
 export interface User {
@@ -58,6 +73,7 @@ export interface User {
   email: string;
   role: Role | "HR" | "Manager";
   avatar: string;
+  permissions?: string[]; // Added permissions for admin features
 }
 
 export interface AIInsight {
@@ -68,6 +84,7 @@ export interface AIInsight {
   description: string;
   category: "strength" | "improvement" | "trend" | "recommendation";
   confidence: number; // 0-100
+  relatedMetrics?: string[]; // New: related metrics for this insight
 }
 
 export interface DevelopmentPlan {
@@ -84,4 +101,39 @@ export interface DevelopmentGoal {
   category: "technical" | "soft" | "leadership" | "domain";
   status: "not-started" | "in-progress" | "completed";
   dueDate: string;
+  completionPercentage?: number; // New: percentage of completion
+  relatedSkills?: string[]; // New: skills related to this goal
+}
+
+// New interfaces for compensation data
+export interface CompensationData {
+  id: string;
+  employeeId: string;
+  year: number;
+  baseSalary: number;
+  bonus?: number;
+  stockOptions?: number;
+  totalCompensation: number;
+  performanceRating: PerformanceRating;
+  notes?: string;
+}
+
+// New interface for admin configuration
+export interface AdminConfig {
+  dataGenerationParameters: {
+    performanceDistribution: string; // 'normal', 'skewed-high', 'skewed-low'
+    feedbackVolume: number; // 1-10 scale
+    trendStrength: number; // 1-10 scale for how strong trends should be
+  };
+  simulationScenarios: SimulationScenario[];
+}
+
+export interface SimulationScenario {
+  id: string;
+  name: string;
+  description: string;
+  affectedEmployees: string[];
+  performanceShift: number; // -100 to 100 percentage
+  duration: number; // months
+  active: boolean;
 }

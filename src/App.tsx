@@ -14,6 +14,7 @@ import Feedback from "./pages/Feedback";
 import Development from "./pages/Development";
 import Employees from "./pages/Employees";
 import EmployeeProfile from "./pages/EmployeeProfile";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="development" element={<Development />} />
               <Route path="employees" element={<Employees />} />
               <Route path="employees/:id" element={<EmployeeProfile />} />
+              <Route path="admin" element={<Admin />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

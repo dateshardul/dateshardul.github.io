@@ -6,7 +6,8 @@ import {
   PerformanceData, 
   AIInsight, 
   DevelopmentPlan, 
-  User 
+  User,
+  CompensationData
 } from "../lib/types";
 
 interface DataContextType {
@@ -15,6 +16,7 @@ interface DataContextType {
   insights: AIInsight[];
   developmentPlans: DevelopmentPlan[];
   users: User[];
+  compensationData: CompensationData[];
   currentUser: User | null;
   selectedEmployee: Employee | null;
   setSelectedEmployee: (employee: Employee | null) => void;
@@ -30,6 +32,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [insights, setInsights] = useState<AIInsight[]>([]);
   const [developmentPlans, setDevelopmentPlans] = useState<DevelopmentPlan[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [compensationData, setCompensationData] = useState<CompensationData[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,6 +51,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setInsights(data.insights);
       setDevelopmentPlans(data.developmentPlans);
       setUsers(data.users);
+      setCompensationData(data.compensationData || []);
       setCurrentUser(data.currentUser);
       setSelectedEmployee(null);
     } catch (error) {
@@ -66,6 +70,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setInsights(data.insights);
       setDevelopmentPlans(data.developmentPlans);
       setUsers(data.users);
+      setCompensationData(data.compensationData || []);
       setCurrentUser(data.currentUser);
       setSelectedEmployee(null);
     } catch (error) {
@@ -83,6 +88,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         insights,
         developmentPlans,
         users,
+        compensationData,
         currentUser,
         selectedEmployee,
         setSelectedEmployee,

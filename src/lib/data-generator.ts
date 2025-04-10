@@ -1,3 +1,4 @@
+
 import { faker } from "@faker-js/faker";
 import {
   Employee,
@@ -7,13 +8,15 @@ import {
   AIInsight,
   DevelopmentPlan,
   DevelopmentGoal,
-  User
+  User,
+  CompensationData,
+  PerformanceRating
 } from "./types";
 
 // Seed the random number generator for consistent results
 faker.seed(123);
 
-// Generate employees
+// Generate employees with enhanced profiles
 export const generateEmployees = (count: number = 20): Employee[] => {
   const roles: Role[] = ["SDE", "Product Manager", "ML Engineer"];
   const departments = ["Engineering", "Product", "Data Science", "Platform", "Mobile"];
@@ -25,10 +28,75 @@ export const generateEmployees = (count: number = 20): Employee[] => {
     "Emma Wilson"
   ];
 
+  // Generate role-specific skills
+  const roleSkills = {
+    "SDE": [
+      "JavaScript", "TypeScript", "React", "Node.js", "Python", "Java", "Go",
+      "AWS", "Docker", "Kubernetes", "CI/CD", "System Design", "Microservices",
+      "Database Design", "Algorithms", "Data Structures", "Testing"
+    ],
+    "Product Manager": [
+      "Requirements Analysis", "User Research", "A/B Testing", "Roadmapping",
+      "Stakeholder Management", "Market Analysis", "Competitive Analysis",
+      "Data Analysis", "User Stories", "Agile", "Scrum", "Kanban", "Prioritization",
+      "Product Strategy", "Go-to-Market", "OKRs", "KPIs"
+    ],
+    "ML Engineer": [
+      "Python", "TensorFlow", "PyTorch", "Scikit-learn", "Deep Learning",
+      "NLP", "Computer Vision", "Recommendation Systems", "Data Pipeline",
+      "Feature Engineering", "Model Deployment", "MLOps", "A/B Testing",
+      "Statistical Analysis", "Big Data", "Spark", "Data Visualization"
+    ]
+  };
+  
+  // Educational backgrounds by role
+  const educationByRole = {
+    "SDE": [
+      "BS in Computer Science", "MS in Software Engineering",
+      "BS in Computer Engineering", "Self-taught Developer",
+      "Bootcamp Graduate", "PhD in Computer Science"
+    ],
+    "Product Manager": [
+      "MBA", "BS in Business", "MS in Product Management",
+      "BS in Computer Science", "MS in HCI", 
+      "BS in Psychology", "MS in Marketing"
+    ],
+    "ML Engineer": [
+      "MS in Machine Learning", "PhD in Computer Science",
+      "MS in Data Science", "BS in Statistics", 
+      "MS in Artificial Intelligence", "PhD in Mathematics"
+    ]
+  };
+  
+  // Previous companies by role
+  const previousCompaniesByRole = {
+    "SDE": [
+      "Google", "Microsoft", "Amazon", "Facebook", "Apple",
+      "Netflix", "Uber", "Airbnb", "Stripe", "Square"
+    ],
+    "Product Manager": [
+      "Google", "Microsoft", "Amazon", "Facebook", "Apple",
+      "Salesforce", "Adobe", "Slack", "Atlassian", "Dropbox"
+    ],
+    "ML Engineer": [
+      "Google Brain", "DeepMind", "OpenAI", "Microsoft Research",
+      "Amazon Science", "Facebook AI", "Apple ML", "Nvidia",
+      "IBM Watson", "Anthropic"
+    ]
+  };
+
   return Array.from({ length: count }).map((_, index) => {
     const role = roles[Math.floor(Math.random() * roles.length)];
     const department = departments[Math.floor(Math.random() * departments.length)];
     const manager = managers[Math.floor(Math.random() * managers.length)];
+    
+    // Generate 2-5 skills for the employee from their role's skill pool
+    const availableSkills = roleSkills[role];
+    const skillCount = faker.number.int({ min: 2, max: 5 });
+    const skills = faker.helpers.arrayElements(availableSkills, skillCount);
+    
+    // Generate experience level (1-15 years)
+    const experienceYears = faker.number.int({ min: 1, max: 15 });
     
     return {
       id: faker.string.uuid(),
@@ -38,12 +106,16 @@ export const generateEmployees = (count: number = 20): Employee[] => {
       avatar: faker.image.avatarGitHub(),
       department,
       manager,
-      joinDate: faker.date.past({ years: 5 }).toISOString().split("T")[0]
+      joinDate: faker.date.past({ years: 5 }).toISOString().split("T")[0],
+      experienceYears,
+      skills,
+      previousCompany: faker.helpers.arrayElement(previousCompaniesByRole[role]),
+      education: faker.helpers.arrayElement(educationByRole[role]),
     };
   });
 };
 
-// Generate performance data for all employees over 6 months
+// Generate enhanced performance data for all employees over 6 months
 export const generatePerformanceData = (employees: Employee[]): PerformanceData[] => {
   const performanceData: PerformanceData[] = [];
   const currentDate = new Date();
@@ -72,13 +144,14 @@ export const generatePerformanceData = (employees: Employee[]): PerformanceData[
       
       // Add some randomness but keep within 1-5 range
       let rating = Math.round(baseRating + faker.number.float({ min: -0.5, max: 0.5 }));
-      rating = Math.max(1, Math.min(5, rating)) as 1 | 2 | 3 | 4 | 5;
+      rating = Math.max(1, Math.min(5, rating)) as PerformanceRating;
       
       // Generate role-specific metrics
-      const metrics = generateMetricsForRole(employee.role, rating);
+      const metrics = generateMetricsForRole(employee.role, rating, employee.experienceYears);
       
       // Generate feedback
-      const feedback = generateFeedbackForEmployee(employee, 3, monthString, rating);
+      const feedbackCount = rating >= 4 ? 4 : rating <= 2 ? 2 : 3; // More feedback for high performers
+      const feedback = generateFeedbackForEmployee(employee, feedbackCount, monthString, rating);
       
       performanceData.push({
         id: faker.string.uuid(),
@@ -94,10 +167,14 @@ export const generatePerformanceData = (employees: Employee[]): PerformanceData[
   return performanceData;
 };
 
-// Generate metrics based on role and performance rating
-const generateMetricsForRole = (role: Role, rating: number) => {
-  // Base metrics influenced by rating (1-5 scale)
+// Generate metrics based on role, performance rating, and experience
+const generateMetricsForRole = (role: Role, rating: number, experienceYears: number) => {
+  // Base metrics influenced by rating (1-5 scale) and experience
   const performanceFactor = rating / 5; // 0.2 to 1.0
+  const experienceFactor = Math.min(1, experienceYears / 10); // 0.1 to 1.0
+  
+  // Combined factor with experience having less weight than performance
+  const combinedFactor = (performanceFactor * 0.7) + (experienceFactor * 0.3);
   
   // Add some randomness to metrics
   const randomFactor = () => faker.number.float({ min: 0.8, max: 1.2 });
@@ -105,30 +182,46 @@ const generateMetricsForRole = (role: Role, rating: number) => {
   switch (role) {
     case "SDE":
       return {
-        codeQuality: Math.round(60 + (performanceFactor * 40) * randomFactor()),
-        velocity: Math.round(5 + (performanceFactor * 15) * randomFactor()),
-        commitFrequency: Math.round(3 + (performanceFactor * 17) * randomFactor()),
-        pullRequestsReviewed: Math.round(2 + (performanceFactor * 8) * randomFactor()),
-        bugsIntroduced: Math.round(10 - (performanceFactor * 8) * randomFactor()),
-        onTimeDelivery: Math.round(70 + (performanceFactor * 30) * randomFactor())
+        // Core SDE metrics
+        codeQuality: Math.round(60 + (combinedFactor * 40) * randomFactor()),
+        velocity: Math.round(5 + (combinedFactor * 15) * randomFactor()),
+        commitFrequency: Math.round(3 + (combinedFactor * 17) * randomFactor()),
+        pullRequestsReviewed: Math.round(2 + (combinedFactor * 8) * randomFactor()),
+        bugsIntroduced: Math.round(10 - (combinedFactor * 8) * randomFactor()),
+        onTimeDelivery: Math.round(70 + (combinedFactor * 30) * randomFactor()),
+        
+        // Enhanced SDE metrics
+        complexityScore: Math.round(50 + (combinedFactor * 50) * randomFactor()),
+        testCoverage: Math.round(60 + (combinedFactor * 35) * randomFactor()),
       };
     
     case "Product Manager":
       return {
-        productImpact: Math.round(60 + (performanceFactor * 40) * randomFactor()),
-        stakeholderSatisfaction: Math.round(70 + (performanceFactor * 30) * randomFactor()),
-        requirementQuality: Math.round(65 + (performanceFactor * 35) * randomFactor()),
-        decisionsTimeliness: Math.round(60 + (performanceFactor * 40) * randomFactor()),
-        onTimeDelivery: Math.round(70 + (performanceFactor * 30) * randomFactor())
+        // Core PM metrics
+        productImpact: Math.round(60 + (combinedFactor * 40) * randomFactor()),
+        stakeholderSatisfaction: Math.round(70 + (combinedFactor * 30) * randomFactor()),
+        requirementQuality: Math.round(65 + (combinedFactor * 35) * randomFactor()),
+        decisionsTimeliness: Math.round(60 + (combinedFactor * 40) * randomFactor()),
+        onTimeDelivery: Math.round(70 + (combinedFactor * 30) * randomFactor()),
+        
+        // Enhanced PM metrics
+        featureDeliveryRate: Math.round(70 + (combinedFactor * 30) * randomFactor()),
+        roadmapAdherence: Math.round(75 + (combinedFactor * 25) * randomFactor()),
+        marketAnalysisScore: Math.round(65 + (combinedFactor * 35) * randomFactor()),
       };
     
     case "ML Engineer":
       return {
-        modelAccuracy: Math.round(70 + (performanceFactor * 30) * randomFactor()),
-        experimentVelocity: Math.round(3 + (performanceFactor * 7) * randomFactor()),
-        paperContributions: Math.round(performanceFactor * 3 * randomFactor()),
-        dataQuality: Math.round(65 + (performanceFactor * 35) * randomFactor()),
-        modelDeployments: Math.round(1 + (performanceFactor * 4) * randomFactor())
+        // Core ML Engineer metrics
+        modelAccuracy: Math.round(70 + (combinedFactor * 30) * randomFactor()),
+        experimentVelocity: Math.round(3 + (combinedFactor * 7) * randomFactor()),
+        paperContributions: Math.round(combinedFactor * 3 * randomFactor()),
+        dataQuality: Math.round(65 + (combinedFactor * 35) * randomFactor()),
+        modelDeployments: Math.round(1 + (combinedFactor * 4) * randomFactor()),
+        
+        // Enhanced ML Engineer metrics
+        pipelineUptime: Math.round(85 + (combinedFactor * 15) * randomFactor()),
+        algorithmComplexity: Math.round(60 + (combinedFactor * 40) * randomFactor()),
       };
     
     default:
@@ -136,7 +229,7 @@ const generateMetricsForRole = (role: Role, rating: number) => {
   }
 };
 
-// Generate feedback for an employee
+// Generate enhanced feedback for an employee
 const generateFeedbackForEmployee = (
   employee: Employee, 
   count: number, 
@@ -150,21 +243,27 @@ const generateFeedbackForEmployee = (
         "Great at breaking down complex technical problems into manageable tasks.",
         "Takes ownership of issues and works diligently to resolve them.",
         "Proactively identifies and addresses technical debt.",
-        "Excellent code reviewer who provides thorough and constructive feedback."
+        "Excellent code reviewer who provides thorough and constructive feedback.",
+        "Demonstrates exceptional understanding of system architecture.",
+        "Consistently writes well-documented and maintainable code."
       ],
       negative: [
         "Need to improve code documentation for better maintainability.",
         "Should focus on writing more unit tests to prevent regressions.",
         "Sometimes takes too long to complete tasks due to overengineering.",
         "Could improve communication around technical roadblocks.",
-        "Should be more open to alternative technical approaches."
+        "Should be more open to alternative technical approaches.",
+        "Code reviews often lack depth and miss important issues.",
+        "Struggles with estimating task complexity and time requirements."
       ],
       neutral: [
         "Continues to develop technical skills at an expected pace.",
         "Maintains consistent performance in coding tasks.",
         "Works well within established patterns and practices.",
         "Follows team processes adequately.",
-        "Communicates technical concepts effectively to the team."
+        "Communicates technical concepts effectively to the team.",
+        "Balances technical debt against feature development.",
+        "Participates appropriately in design discussions."
       ]
     },
     "Product Manager": {
@@ -173,21 +272,27 @@ const generateFeedbackForEmployee = (
         "Maintains a clear product vision and effectively communicates it.",
         "Makes data-driven decisions that positively impact product metrics.",
         "Great at prioritizing features based on business impact and technical constraints.",
-        "Builds strong relationships with cross-functional teams."
+        "Builds strong relationships with cross-functional teams.",
+        "Demonstrates exceptional market awareness and competitive insight.",
+        "User research methods consistently yield valuable product insights."
       ],
       negative: [
         "Product requirements often lack necessary details for implementation.",
         "Needs to improve on setting realistic deadlines for features.",
         "Should gather more user feedback before finalizing product decisions.",
         "Could improve on technical understanding to better collaborate with engineering.",
-        "Tends to change requirements too frequently during development."
+        "Tends to change requirements too frequently during development.",
+        "Prioritization decisions sometimes seem arbitrary rather than data-driven.",
+        "Stakeholder management needs attention, particularly with conflicting priorities."
       ],
       neutral: [
         "Maintains a balanced approach to feature prioritization.",
         "Documents requirements with adequate detail for implementation.",
         "Collaborates effectively with most stakeholders.",
         "Demonstrates understanding of product metrics and their impact.",
-        "Responds appropriately to changing market conditions."
+        "Responds appropriately to changing market conditions.",
+        "Roadmap planning aligns with overall company strategy.",
+        "User story creation follows established team templates and processes."
       ]
     },
     "ML Engineer": {
@@ -196,23 +301,48 @@ const generateFeedbackForEmployee = (
         "Creates robust data pipelines that handle edge cases well.",
         "Effectively balances model accuracy with computational efficiency.",
         "Exceptional at explaining complex ML concepts to non-technical stakeholders.",
-        "Consistently improves model performance through thoughtful experimentation."
+        "Consistently improves model performance through thoughtful experimentation.",
+        "Deep understanding of the latest research relevant to our business problems.",
+        "Excellent at identifying and correcting bias in training data."
       ],
       negative: [
         "Should improve monitoring of models in production for performance degradation.",
         "Needs to document experimental results more thoroughly.",
         "Could improve on validating data quality before model training.",
         "Should consider implementation complexity when selecting modeling approaches.",
-        "Model evaluation metrics don't always align with business objectives."
+        "Model evaluation metrics don't always align with business objectives.",
+        "Tends to overoptimize models before validating problem-solution fit.",
+        "Needs to improve communication of model limitations to stakeholders."
       ],
       neutral: [
         "Follows established best practices for model development.",
         "Documents experiments with sufficient detail for reproducibility.",
         "Adequately validates models before deployment.",
         "Maintains awareness of current research relevant to our problems.",
-        "Balances innovation with practical business constraints."
+        "Balances innovation with practical business constraints.",
+        "Model releases follow established team protocols.",
+        "Data preprocessing meets team quality standards."
       ]
     }
+  };
+
+  // Topics that could be identified in feedback
+  const feedbackTopics = {
+    SDE: [
+      "code quality", "technical skills", "code review", "testing",
+      "architecture", "documentation", "estimation", "collaboration",
+      "problem-solving", "technical debt", "mentoring", "communication"
+    ],
+    "Product Manager": [
+      "requirements", "communication", "vision", "stakeholder management",
+      "prioritization", "data analysis", "user research", "market analysis",
+      "roadmapping", "feature definition", "technical understanding", "execution"
+    ],
+    "ML Engineer": [
+      "model quality", "experimentation", "algorithm selection", "data pipeline",
+      "model deployment", "data quality", "research", "technical documentation",
+      "performance optimization", "validation", "interpretability", "collaboration"
+    ]
   };
 
   // Select feedback category based on rating
@@ -247,12 +377,20 @@ const generateFeedbackForEmployee = (
     
     // Customize with some specific details
     if (employee.role === "SDE") {
-      feedbackText = feedbackText.replace("technical problems", `issues in the ${faker.helpers.arrayElement(["authentication", "payment", "notification", "dashboard"])} system`);
+      feedbackText = feedbackText.replace("technical problems", 
+        `issues in the ${faker.helpers.arrayElement(["authentication", "payment", "notification", "dashboard", "API", "database", "caching"])} system`);
     } else if (employee.role === "Product Manager") {
-      feedbackText = feedbackText.replace("stakeholders", faker.helpers.arrayElement(["marketing team", "sales team", "engineering team", "executives"]));
+      feedbackText = feedbackText.replace("stakeholders", 
+        faker.helpers.arrayElement(["marketing team", "sales team", "engineering team", "executives", "customer success", "design team"]));
     } else if (employee.role === "ML Engineer") {
-      feedbackText = feedbackText.replace("models", faker.helpers.arrayElement(["recommendation models", "forecasting models", "classification models", "clustering algorithms"]));
+      feedbackText = feedbackText.replace("models", 
+        faker.helpers.arrayElement(["recommendation models", "forecasting models", "classification models", "clustering algorithms", "NLP models", "computer vision models"]));
     }
+    
+    // Extract 1-3 topics from the feedback
+    const roleFeedbackTopics = feedbackTopics[employee.role as keyof typeof feedbackTopics];
+    const topicCount = faker.number.int({ min: 1, max: 3 });
+    const topics = faker.helpers.arrayElements(roleFeedbackTopics, topicCount);
     
     return {
       id: faker.string.uuid(),
@@ -260,7 +398,8 @@ const generateFeedbackForEmployee = (
       date: `${month}-${faker.number.int({ min: 1, max: 28 })}`,
       text: feedbackText,
       category,
-      sentiment
+      sentiment,
+      topics
     };
   });
 };
@@ -295,8 +434,31 @@ export const generateAIInsights = (
     const isImproving = ratings[ratings.length - 1] > ratings[0];
     const isDecreasing = ratings[ratings.length - 1] < ratings[0];
     
-    // Generate trend insight
+    // Generate trend insight with related metrics
     if (isImproving || isDecreasing) {
+      const metricsTrending = [];
+      
+      // Identify metrics that are showing significant trends
+      if (employee.role === "SDE") {
+        if (isImproving) {
+          metricsTrending.push("Code Quality", "Velocity", "On-Time Delivery");
+        } else {
+          metricsTrending.push("Bugs Introduced", "Commit Frequency");
+        }
+      } else if (employee.role === "Product Manager") {
+        if (isImproving) {
+          metricsTrending.push("Stakeholder Satisfaction", "Requirement Quality");
+        } else {
+          metricsTrending.push("Feature Delivery Rate", "Roadmap Adherence");
+        }
+      } else if (employee.role === "ML Engineer") {
+        if (isImproving) {
+          metricsTrending.push("Model Accuracy", "Data Quality");
+        } else {
+          metricsTrending.push("Pipeline Uptime", "Experiment Velocity");
+        }
+      }
+      
       insights.push({
         id: faker.string.uuid(),
         employeeId: employee.id,
@@ -306,7 +468,8 @@ export const generateAIInsights = (
           ? `${employee.name} has shown steady improvement over the last ${employeeData.length} months, with ratings increasing from ${ratings[0]} to ${ratings[ratings.length - 1]}.`
           : `${employee.name}'s performance has been declining over the last ${employeeData.length} months, with ratings decreasing from ${ratings[0]} to ${ratings[ratings.length - 1]}.`,
         category: "trend",
-        confidence: faker.number.int({ min: 80, max: 95 })
+        confidence: faker.number.int({ min: 80, max: 95 }),
+        relatedMetrics: metricsTrending
       });
     }
     
@@ -324,7 +487,8 @@ export const generateAIInsights = (
           title: "Exceptional Code Quality",
           description: `${employee.name} consistently produces high-quality code with a quality score of ${metrics.codeQuality}/100, significantly above team average.`,
           category: "strength",
-          confidence: faker.number.int({ min: 85, max: 98 })
+          confidence: faker.number.int({ min: 85, max: 98 }),
+          relatedMetrics: ["Code Quality", "Test Coverage"]
         });
       }
       
@@ -336,7 +500,21 @@ export const generateAIInsights = (
           title: "Code Quality Improvement Opportunity",
           description: `${employee.name} has introduced ${metrics.bugsIntroduced} bugs in the last month, which is above team average. Consider additional code reviews or pairing sessions.`,
           category: "improvement",
-          confidence: faker.number.int({ min: 75, max: 90 })
+          confidence: faker.number.int({ min: 75, max: 90 }),
+          relatedMetrics: ["Bugs Introduced", "Code Quality", "Test Coverage"]
+        });
+      }
+      
+      if (metrics.testCoverage && metrics.testCoverage < 60) {
+        insights.push({
+          id: faker.string.uuid(),
+          employeeId: employee.id,
+          date: new Date().toISOString(),
+          title: "Testing Coverage Needs Attention",
+          description: `${employee.name}'s code has ${metrics.testCoverage}% test coverage, below the team target of 80%. Consider focusing on improving test coverage in the next sprint.`,
+          category: "improvement",
+          confidence: faker.number.int({ min: 80, max: 95 }),
+          relatedMetrics: ["Test Coverage", "Bugs Introduced"]
         });
       }
     }
@@ -352,7 +530,8 @@ export const generateAIInsights = (
           title: "Outstanding Stakeholder Management",
           description: `${employee.name} has achieved exceptional stakeholder satisfaction scores of ${metrics.stakeholderSatisfaction}/100, demonstrating excellent communication and expectation setting.`,
           category: "strength",
-          confidence: faker.number.int({ min: 85, max: 95 })
+          confidence: faker.number.int({ min: 85, max: 95 }),
+          relatedMetrics: ["Stakeholder Satisfaction", "Requirement Quality"]
         });
       }
       
@@ -364,7 +543,21 @@ export const generateAIInsights = (
           title: "Requirements Definition Opportunity",
           description: `${employee.name}'s requirement quality score is ${metrics.requirementQuality}/100. Recommend providing additional detail and acceptance criteria in user stories.`,
           category: "improvement",
-          confidence: faker.number.int({ min: 75, max: 90 })
+          confidence: faker.number.int({ min: 75, max: 90 }),
+          relatedMetrics: ["Requirement Quality", "Feature Delivery Rate"]
+        });
+      }
+      
+      if (metrics.featureDeliveryRate && metrics.featureDeliveryRate < 80) {
+        insights.push({
+          id: faker.string.uuid(),
+          employeeId: employee.id,
+          date: new Date().toISOString(),
+          title: "Feature Delivery Rate Below Target",
+          description: `${employee.name}'s feature delivery rate of ${metrics.featureDeliveryRate}% is below target. Consider breaking down features into smaller, more manageable pieces.`,
+          category: "improvement",
+          confidence: faker.number.int({ min: 75, max: 85 }),
+          relatedMetrics: ["Feature Delivery Rate", "Roadmap Adherence"]
         });
       }
     }
@@ -380,7 +573,8 @@ export const generateAIInsights = (
           title: "Exceptional Model Performance",
           description: `${employee.name} has achieved ${metrics.modelAccuracy}% model accuracy, significantly improving prediction quality for business outcomes.`,
           category: "strength",
-          confidence: faker.number.int({ min: 85, max: 98 })
+          confidence: faker.number.int({ min: 85, max: 98 }),
+          relatedMetrics: ["Model Accuracy", "Algorithm Complexity"]
         });
       }
       
@@ -392,7 +586,21 @@ export const generateAIInsights = (
           title: "Experimentation Opportunity",
           description: `${employee.name} conducted ${metrics.experimentVelocity} experiments last month, below team average. Consider allocating more time for hypothesis testing and exploration.`,
           category: "improvement",
-          confidence: faker.number.int({ min: 75, max: 90 })
+          confidence: faker.number.int({ min: 75, max: 90 }),
+          relatedMetrics: ["Experiment Velocity", "Model Accuracy"]
+        });
+      }
+      
+      if (metrics.pipelineUptime && metrics.pipelineUptime < 90) {
+        insights.push({
+          id: faker.string.uuid(),
+          employeeId: employee.id,
+          date: new Date().toISOString(),
+          title: "Data Pipeline Stability Issues",
+          description: `${employee.name}'s data pipeline uptime of ${metrics.pipelineUptime}% is below the target of 98%. Focus on improving error handling and monitoring.`,
+          category: "improvement",
+          confidence: faker.number.int({ min: 80, max: 95 }),
+          relatedMetrics: ["Pipeline Uptime", "Data Quality"]
         });
       }
     }
@@ -405,7 +613,8 @@ export const generateAIInsights = (
       title: generateRecommendationTitle(employee.role),
       description: generateRecommendationDescription(employee),
       category: "recommendation",
-      confidence: faker.number.int({ min: 70, max: 90 })
+      confidence: faker.number.int({ min: 70, max: 90 }),
+      relatedMetrics: generateRelatedMetricsForRole(employee.role)
     });
   });
   
@@ -458,7 +667,20 @@ const generateRecommendationDescription = (employee: Employee): string => {
   return options[Math.floor(Math.random() * options.length)];
 };
 
-// Generate development plans
+const generateRelatedMetricsForRole = (role: Role): string[] => {
+  switch (role) {
+    case "SDE":
+      return faker.helpers.arrayElements(["Code Quality", "Velocity", "Bugs Introduced", "On-Time Delivery"], faker.number.int({ min: 1, max: 3 }));
+    case "Product Manager":
+      return faker.helpers.arrayElements(["Stakeholder Satisfaction", "Requirement Quality", "Feature Delivery Rate"], faker.number.int({ min: 1, max: 3 }));
+    case "ML Engineer":
+      return faker.helpers.arrayElements(["Model Accuracy", "Experiment Velocity", "Data Quality", "Pipeline Uptime"], faker.number.int({ min: 1, max: 3 }));
+    default:
+      return [];
+  }
+};
+
+// Generate development plans with related skills
 export const generateDevelopmentPlans = (
   employees: Employee[],
   insights: AIInsight[]
@@ -499,7 +721,9 @@ export const generateDevelopmentPlans = (
         description: generateGoalDescription(employee.role, category),
         category,
         status: faker.helpers.arrayElement(["not-started", "in-progress", "completed"]),
-        dueDate: faker.date.future().toISOString().split("T")[0]
+        dueDate: faker.date.future().toISOString().split("T")[0],
+        completionPercentage: faker.helpers.arrayElement([0, 25, 50, 75, 100]),
+        relatedSkills: getRelatedSkills(employee.role, category)
       };
       
       goals.push(goal);
@@ -686,6 +910,96 @@ const generateGoalDescription = (role: Role, category: string): string => {
   return roleCategory[Math.floor(Math.random() * roleCategory.length)];
 };
 
+const getRelatedSkills = (role: Role, category: string): string[] => {
+  const skillsByRoleAndCategory = {
+    SDE: {
+      technical: ["System Design", "Cloud Architecture", "Microservices", "Kubernetes", "Docker", "CI/CD"],
+      soft: ["Documentation", "Communication", "Mentoring", "Collaboration"],
+      leadership: ["Project Management", "Mentoring", "Technical Direction", "Best Practices"],
+      domain: ["Financial Systems", "Healthcare IT", "E-commerce", "Telecommunications"]
+    },
+    "Product Manager": {
+      technical: ["SQL", "Data Analysis", "Web Development", "Analytics"],
+      soft: ["Communication", "Presentation Skills", "Negotiation", "Stakeholder Management"],
+      leadership: ["Cross-functional Leadership", "Strategic Vision", "Team Management", "Process Development"],
+      domain: ["Market Analysis", "Competitive Analysis", "User Research", "Business Case Development"]
+    },
+    "ML Engineer": {
+      technical: ["Deep Learning", "MLOps", "Distributed Computing", "Reinforcement Learning"],
+      soft: ["Documentation", "Model Explanation", "Cross-functional Communication", "Data Visualization"],
+      leadership: ["Project Management", "Mentoring", "Strategic Direction", "Best Practices"],
+      domain: ["NLP", "Computer Vision", "Time Series Analysis", "Recommendation Systems"]
+    }
+  };
+  
+  const availableSkills = skillsByRoleAndCategory[role][category as keyof typeof skillsByRoleAndCategory[typeof role]];
+  return faker.helpers.arrayElements(availableSkills, faker.number.int({ min: 1, max: 3 }));
+};
+
+// Generate compensation data for employees
+export const generateCompensationData = (employees: Employee[]): CompensationData[] => {
+  const compensationData: CompensationData[] = [];
+  const currentYear = new Date().getFullYear();
+  
+  // Base salary ranges by role
+  const baseSalaryRanges = {
+    "SDE": { min: 90000, max: 180000 },
+    "Product Manager": { min: 100000, max: 190000 },
+    "ML Engineer": { min: 110000, max: 200000 }
+  };
+  
+  // Generate 3 years of compensation data for each employee
+  for (let year = currentYear - 2; year <= currentYear; year++) {
+    for (const employee of employees) {
+      // Calculate base salary based on role, experience, and a bit of randomness
+      const salaryRange = baseSalaryRanges[employee.role];
+      const experienceFactor = Math.min(1, employee.experienceYears / 15); // 0-1 based on experience
+      const baseSalary = Math.round(
+        salaryRange.min + ((salaryRange.max - salaryRange.min) * experienceFactor) + 
+        (faker.number.int({ min: -10000, max: 10000 }))
+      );
+      
+      // Performance rating for the year (simulate past performance)
+      const rating = faker.helpers.arrayElement([3, 3, 3, 4, 4, 5]) as PerformanceRating;
+      
+      // Bonus based on performance rating
+      const bonusPercentages = {
+        1: 0,
+        2: 0.01,
+        3: 0.05,
+        4: 0.10,
+        5: 0.20
+      };
+      const bonusPercentage = bonusPercentages[rating];
+      const bonus = Math.round(baseSalary * bonusPercentage);
+      
+      // Stock options (more for higher level/experience)
+      const stockOptions = employee.experienceYears >= 5 ? 
+        Math.round(baseSalary * faker.number.float({ min: 0.05, max: 0.3 })) : 0;
+      
+      // Total compensation
+      const totalCompensation = baseSalary + bonus + stockOptions;
+      
+      compensationData.push({
+        id: faker.string.uuid(),
+        employeeId: employee.id,
+        year,
+        baseSalary,
+        bonus,
+        stockOptions,
+        totalCompensation,
+        performanceRating: rating,
+        notes: rating >= 4 ? 
+          "Received performance excellence recognition" : 
+          rating <= 2 ? 
+          "Performance improvement plan discussed" : undefined
+      });
+    }
+  }
+  
+  return compensationData;
+};
+
 // Generate users for the system (HR, managers, employees)
 export const generateUsers = (employees: Employee[]): User[] => {
   const users: User[] = [];
@@ -697,11 +1011,12 @@ export const generateUsers = (employees: Employee[]): User[] => {
       name: emp.name,
       email: emp.email,
       role: emp.role,
-      avatar: emp.avatar
+      avatar: emp.avatar,
+      permissions: ["view_own_performance", "view_own_feedback", "view_own_development"]
     });
   });
   
-  // Add HR and managers
+  // Add HR and managers with appropriate permissions
   const hrCount = faker.number.int({ min: 2, max: 4 });
   for (let i = 0; i < hrCount; i++) {
     users.push({
@@ -709,7 +1024,15 @@ export const generateUsers = (employees: Employee[]): User[] => {
       name: faker.person.fullName(),
       email: faker.internet.email(),
       role: "HR",
-      avatar: faker.image.avatarGitHub()
+      avatar: faker.image.avatarGitHub(),
+      permissions: [
+        "view_all_performance", 
+        "edit_all_performance", 
+        "view_all_feedback", 
+        "edit_all_feedback",
+        "admin_access",
+        "compensation_management"
+      ]
     });
   }
   
@@ -720,7 +1043,14 @@ export const generateUsers = (employees: Employee[]): User[] => {
       name: faker.person.fullName(),
       email: faker.internet.email(),
       role: "Manager",
-      avatar: faker.image.avatarGitHub()
+      avatar: faker.image.avatarGitHub(),
+      permissions: [
+        "view_team_performance", 
+        "edit_team_performance", 
+        "view_team_feedback", 
+        "add_feedback",
+        "approve_development_plans"
+      ]
     });
   }
   
@@ -729,11 +1059,12 @@ export const generateUsers = (employees: Employee[]): User[] => {
 
 // Initialize all data
 export const initializeData = () => {
-  const employees = generateEmployees(18);
+  const employees = generateEmployees(20);
   const performanceData = generatePerformanceData(employees);
   const insights = generateAIInsights(employees, performanceData);
   const developmentPlans = generateDevelopmentPlans(employees, insights);
   const users = generateUsers(employees);
+  const compensationData = generateCompensationData(employees);
   
   return {
     employees,
@@ -741,6 +1072,7 @@ export const initializeData = () => {
     insights,
     developmentPlans,
     users,
+    compensationData,
     currentUser: users.find(user => user.role === "HR") || users[0]
   };
 };
