@@ -1,4 +1,3 @@
-
 import { NavLink } from "react-router-dom";
 import { useData } from "../contexts/DataContext";
 import {
@@ -15,7 +14,7 @@ const Sidebar = () => {
   const { currentUser } = useData();
 
   return (
-    <aside className="bg-pms-blue text-white w-64 flex-shrink-0 hidden md:flex flex-col h-screen">
+    <aside className="bg-pms-blue text-white w-64 flex-shrink-0 hidden md:flex flex-col h-screen fixed left-0 top-0">
       <div className="p-4 border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-pms-teal flex items-center justify-center text-white font-bold">
